@@ -112,23 +112,3 @@ pregunta = cadena_pregunta.invoke({"explicacion": explicacion})
 4. **`StrOutputParser()`** – para quedarnos solo con el texto de la respuesta.
 5. **`prompt | modelo | parser`** – se arman las dos cadenas.
 6. **`main()`** – lee el tema (de la línea de comandos o con `input`), ejecuta las dos cadenas e imprime.
-
----
-
-## 🛠️ Ideas para ampliarlo
-
-- Cambia el texto del `system` para que el "profesor" hable como un pirata 🏴‍☠️.
-- Añade un parámetro `{nivel}` (niño, universitario, experto) a la plantilla.
-- Usa `cadena.stream(...)` en vez de `.invoke(...)` para ver la respuesta letra a letra.
-- Cambia `ChatAnthropic` por otro proveedor (`langchain-openai`, etc.): el resto del código no cambia.
-  Esa es una de las grandes ventajas de LangChain.
-
----
-
-## ❗ Problemas comunes
-
-| Error | Solución |
-|---|---|
-| `Falta ANTHROPIC_API_KEY` | No creaste el `.env` o la clave está vacía. |
-| `ModuleNotFoundError: langchain_anthropic` | Falta `pip install -r requirements.txt` (¿activaste el venv?). |
-| `401 authentication_error` | La API key es incorrecta. |
