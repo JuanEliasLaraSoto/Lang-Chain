@@ -25,6 +25,7 @@ La fotosíntesis es el proceso con el que las plantas fabrican su propia comida.
 | `requirements.txt` | Librerías que hay que instalar. |
 | `.env.example` | Plantilla para poner tu API key. |
 | `.gitignore` | Evita subir a GitHub tu `.env` (tu clave secreta). |
+| `Explicacion_Proyecto_LangChain.pdf` | Guía en PDF para entender y explicar el proyecto. |
 
 ---
 
