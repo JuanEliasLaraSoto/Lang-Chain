@@ -3,7 +3,7 @@
 Un programa muy pequeño en Python que usa **LangChain** para:
 
 1. Explicar cualquier tema con palabras sencillas.
-2. Generar una pregunta de repaso a partir de esa explicación.
+2. Generar una pregunta de repaso **estructurada** (pregunta, respuesta y dificultad), validada con **Pydantic**.
 
 ```
 $ python main.py fotosíntesis
@@ -11,8 +11,11 @@ $ python main.py fotosíntesis
 📘 Explicación:
 La fotosíntesis es el proceso con el que las plantas fabrican su propia comida...
 
-❓ Pregunta de repaso:
+❓ Pregunta de repaso (fácil):
 ¿Qué necesitan las plantas para hacer la fotosíntesis?
+
+(Pulsa Enter para ver la respuesta)
+✅ Luz del sol, agua y dióxido de carbono.
 ```
 
 ---
@@ -21,11 +24,10 @@ La fotosíntesis es el proceso con el que las plantas fabrican su propia comida.
 
 | Archivo | Para qué sirve |
 |---|---|
-| `main.py` | Todo el código (≈50 líneas, comentado paso a paso). |
+| `main.py` | Todo el código (≈70 líneas, comentado paso a paso). |
 | `requirements.txt` | Librerías que hay que instalar. |
 | `.env.example` | Plantilla para poner tu API key. |
 | `.gitignore` | Evita subir a GitHub tu `.env` (tu clave secreta). |
-| `Explicacion_Proyecto_LangChain.pdf` | Guía en PDF para entender y explicar el proyecto. |
 
 ---
 
@@ -57,13 +59,14 @@ LangChain es una librería que facilita construir programas que usan **modelos d
 como Claude o GPT. En vez de escribir a mano todas las llamadas a la API, te da **piezas
 reutilizables** que se conectan entre sí como bloques de LEGO.
 
-En este proyecto usamos 3 piezas:
+En este proyecto usamos estas piezas:
 
 | Pieza | Clase en el código | Qué hace |
 |---|---|---|
 | **Prompt Template** | `ChatPromptTemplate` | Una plantilla de mensaje con huecos (`{tema}`) que se rellenan después. |
 | **Modelo (LLM)** | `ChatAnthropic` | El "cerebro": envía el mensaje a Claude y recibe la respuesta. |
 | **Output Parser** | `StrOutputParser` | Convierte la respuesta del modelo en texto normal (`str`). |
+| **Salida estructurada** | `with_structured_output` + Pydantic | Obliga al modelo a responder con un JSON que cumple un esquema y lo convierte en un objeto Python validado. |
 
 ### La "cadena" (chain)
 
@@ -99,6 +102,30 @@ pregunta = cadena_pregunta.invoke({"explicacion": explicacion})
 
 ¡Eso es todo! Dos cadenas, una detrás de otra.
 
+### Salida estructurada con Pydantic
+
+La segunda cadena no devuelve texto libre, sino un **objeto con campos fijos**. El "molde" se define
+con una clase de **Pydantic**:
+
+```python
+class PreguntaRepaso(BaseModel):
+    pregunta: str
+    respuesta_correcta: str
+    dificultad: Literal["fácil", "media", "difícil"]
+
+cadena_pregunta = prompt_pregunta | modelo.with_structured_output(PreguntaRepaso, method="json_schema")
+```
+
+- `with_structured_output(...)` convierte la clase en un **JSON Schema** y se lo envía a Claude.
+- `method="json_schema"` usa la **salida estructurada nativa** de Claude: el modelo está obligado a
+  responder con un JSON que cumple ese esquema.
+- Pydantic **valida** la respuesta: si `dificultad` fuera `"imposible"` o faltara un campo, lanzaría un
+  error en vez de dejar pasar datos incorrectos.
+- El resultado es un objeto Python normal: `repaso.pregunta`, `repaso.dificultad`...
+
+¿Por qué es útil? Porque con texto libre no sabes qué formato vas a recibir; con un esquema,
+tu programa puede usar la respuesta con seguridad (guardarla, mostrarla por partes, etc.).
+
 ---
 
 ## 🔍 Recorrido por `main.py`
@@ -109,6 +136,7 @@ pregunta = cadena_pregunta.invoke({"explicacion": explicacion})
 3. **`ChatPromptTemplate.from_messages([...])`** – define los mensajes:
    - `"system"`: instrucciones de comportamiento ("eres un profesor paciente").
    - `"human"`: lo que pregunta el usuario, con el hueco `{tema}`.
-4. **`StrOutputParser()`** – para quedarnos solo con el texto de la respuesta.
-5. **`prompt | modelo | parser`** – se arman las dos cadenas.
-6. **`main()`** – lee el tema (de la línea de comandos o con `input`), ejecuta las dos cadenas e imprime.
+4. **`class PreguntaRepaso(BaseModel)`** – el esquema Pydantic de la pregunta de repaso.
+5. **`StrOutputParser()`** – para quedarnos solo con el texto de la explicación.
+6. **`prompt | modelo | ...`** – se arman las dos cadenas (la segunda con `with_structured_output`).
+7. **`main()`** – lee el tema, ejecuta las dos cadenas, muestra la pregunta y, al pulsar Enter, la respuesta.
