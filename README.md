@@ -27,6 +27,7 @@ La fotosíntesis es el proceso con el que las plantas fabrican su propia comida.
 | `main.py` | Todo el código (≈70 líneas, comentado paso a paso). |
 | `requirements.txt` | Librerías que hay que instalar. |
 | `.env.example` | Plantilla para poner tu API key. |
+| `experimentos.py` | 11 experimentos rompiendo piezas a propósito (no necesita API key). |
 | `.gitignore` | Evita subir a GitHub tu `.env` (tu clave secreta). |
 
 ---
@@ -125,6 +126,30 @@ cadena_pregunta = prompt_pregunta | modelo.with_structured_output(PreguntaRepaso
 
 ¿Por qué es útil? Porque con texto libre no sabes qué formato vas a recibir; con un esquema,
 tu programa puede usar la respuesta con seguridad (guardarla, mostrarla por partes, etc.).
+
+---
+
+## 🧪 Experimentos: lo que probé a romper
+
+`experimentos.py` reproduce, **sin API key**, cosas que probé para entender cómo funciona por dentro:
+
+```bash
+python experimentos.py
+```
+
+| # | Qué probé | Qué pasó |
+|---|---|---|
+| 1 | Cambiar el orden: `plantilla \| parser \| modelo` | `ValidationError`: el parser recibe un `ChatPromptValue`, no un `AIMessage`. El `\|` no comprueba nada al montar. |
+| 2 | Escribir mal un hueco (`tma` en vez de `tema`) | `KeyError` que dice qué variable falta y cuál recibió. |
+| 3 | La misma respuesta JSON con `StrOutputParser` y con Pydantic | Con Str tengo un texto (`texto["dificultad"]` → `TypeError`); con Pydantic, `obj.dificultad`. |
+| 4 | El modelo responde en texto libre | Str lo acepta sin quejarse; Pydantic falla en el acto (mejor fallar pronto). |
+| 5 | `dificultad: str` frente a `Literal[...]` con "imposible" | Con `str` pasa sin avisar; con `Literal` se rechaza. |
+| 6 | `bool` obligatorio frente a `Optional[bool]` | Si el dato no aparece, `bool` da error (un modelo real se lo inventaría); `Optional` deja `None`. |
+| 7 | `precio = "7.500 €"` | Pydantic no lo convierte a `int`; `"7500"` sí. |
+| 8 | `batch` frente a un `for` | Con el modelo falso no gana nada (su `batch` es un `for`); con espera de red: 1,5 s → 0,3 s. |
+| 9 | `@tool` sin docstring | `ValueError`: el docstring es lo que lee el modelo para decidir. |
+| 10 | `temperature=0` con Claude Opus 5.5 | LangChain no la envía: este modelo no la admite. |
+| 11 | `with_structured_output` por defecto frente a `json_schema` | El método por defecto avisa de que no puede obligar a usar la herramienta; `json_schema` usa el esquema nativo. |
 
 ---
 
