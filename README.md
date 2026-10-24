@@ -1,5 +1,7 @@
 # 🦜🔗 Mini proyecto LangChain: Explicador de conceptos
 
+[![Tests](https://github.com/JuanEliasLaraSoto/Lang-Chain/actions/workflows/tests.yml/badge.svg)](https://github.com/JuanEliasLaraSoto/Lang-Chain/actions/workflows/tests.yml)
+
 Un programa muy pequeño en Python que usa **LangChain** para:
 
 1. Explicar cualquier tema con palabras sencillas.
@@ -27,6 +29,8 @@ La fotosíntesis es el proceso con el que las plantas fabrican su propia comida.
 | `main.py` | Todo el código (≈70 líneas, comentado paso a paso). |
 | `requirements.txt` | Librerías que hay que instalar. |
 | `.env.example` | Plantilla para poner tu API key. |
+| `tests/test_cadenas.py` | 11 tests con un modelo falso: plantillas, cadenas LCEL y validación Pydantic. |
+| `.github/workflows/tests.yml` | GitHub Actions: ejecuta los tests y los experimentos en cada push. |
 | `experimentos.py` | 11 experimentos rompiendo piezas a propósito (no necesita API key). |
 | `.gitignore` | Evita subir a GitHub tu `.env` (tu clave secreta). |
 
@@ -129,6 +133,30 @@ tu programa puede usar la respuesta con seguridad (guardarla, mostrarla por part
 
 ---
 
+## ✅ Tests
+
+Los tests usan un **modelo falso** (`FakeListChatModel`) que devuelve respuestas escritas a mano,
+así que **no necesitan API key ni gastan dinero**. Comprueban que las piezas encajan, no lo que
+conteste Claude.
+
+```bash
+pip install -r requirements-dev.txt
+pytest -v
+```
+
+| Qué se comprueba | Tests |
+|---|---|
+| Plantillas: el hueco `{tema}` se rellena y falla si falta | 3 |
+| Cadenas LCEL: la primera devuelve `str`, la segunda un `PreguntaRepaso`, y encadenadas funcionan | 3 |
+| Orden cambiado (`parser` antes del `modelo`) falla con `ValidationError` | 1 |
+| Pydantic rechaza texto libre, una dificultad fuera del `Literal` y campos que faltan | 3 |
+| El esquema JSON que recibe el modelo tiene los campos y valores correctos | 1 |
+
+Para que se pudieran testear, las cadenas se crean en `crear_cadenas(modelo)`: en producción recibe
+Claude y en los tests un modelo falso. GitHub Actions los ejecuta en cada push (insignia de arriba).
+
+---
+
 ## 🧪 Experimentos: lo que probé a romper
 
 `experimentos.py` reproduce, **sin API key**, cosas que probé para entender cómo funciona por dentro:
@@ -163,5 +191,5 @@ python experimentos.py
    - `"human"`: lo que pregunta el usuario, con el hueco `{tema}`.
 4. **`class PreguntaRepaso(BaseModel)`** – el esquema Pydantic de la pregunta de repaso.
 5. **`StrOutputParser()`** – para quedarnos solo con el texto de la explicación.
-6. **`prompt | modelo | ...`** – se arman las dos cadenas (la segunda con `with_structured_output`).
+6. **`crear_cadenas(modelo)`** – arma las dos cadenas (la segunda con `with_structured_output`). Recibe el modelo como parámetro para poder testearlas con uno falso.
 7. **`main()`** – lee el tema, ejecuta las dos cadenas, muestra la pregunta y, al pulsar Enter, la respuesta.
